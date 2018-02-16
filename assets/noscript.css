@@ -1,0 +1,35 @@
+body:before {
+	content: '';
+	display: block;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 0;
+	-moz-pointer-events: none;
+	-webkit-pointer-events: none;
+	-ms-pointer-events: none;
+	pointer-events: none;
+	-moz-transform: scale(1);
+	-webkit-transform: scale(1);
+	-ms-transform: scale(1);
+	transform: scale(1);
+	background-image: url('videos/bg.mp4.jpg');
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	background-attachment: scroll;
+}
+
+body {
+	overflow: auto !important;
+}
+
+body:after {
+	display: none !important;
+}
+
+#main > .inner {
+	opacity: 1.0 !important;
+}
