@@ -88,6 +88,313 @@ var	on = addEventListener,
 		}, 100);
 	});
 
+// Sections.
+	(function() {
+
+		var initialSection, initialScrollPoint, initialId,
+			h, e, ee, k,
+			locked = false,
+			initialized = false,
+			doScrollTop = function() {
+				scrollTo(0, 0);
+			},
+			doScroll = function(e, instant) {
+
+				var pos;
+
+				// Determine position.
+					switch (e.dataset.scrollBehavior ? e.dataset.scrollBehavior : 'default') {
+
+						case 'default':
+						default:
+
+							pos = e.offsetTop;
+
+							break;
+
+						case 'center':
+
+							if (e.offsetHeight < window.innerHeight)
+								pos = e.offsetTop - ((window.innerHeight - e.offsetHeight) / 2);
+							else
+								pos = e.offsetTop;
+
+							break;
+
+						case 'previous':
+
+							if (e.previousElementSibling)
+								pos = e.previousElementSibling.offsetTop + e.previousElementSibling.offsetHeight;
+							else
+								pos = e.offsetTop;
+
+							break;
+
+					}
+
+				// Scroll.
+					if ('scrollBehavior' in $body.style
+					&&	initialized
+					&&	!instant)
+						scrollTo({
+							behavior: 'smooth',
+							left: 0,
+							top: pos
+						});
+					else
+						scrollTo(0, pos);
+
+			};
+
+		// Initialize.
+
+			// Set scroll restoration to manual.
+				if ('scrollRestoration' in history)
+					history.scrollRestoration = 'manual';
+
+			// Show initial section.
+
+				// Determine target.
+					h = location.hash ? location.hash.substring(1) : null;
+
+					// Scroll point.
+						if (e = $('[data-scroll-id="' + h + '"]')) {
+
+							initialScrollPoint = e;
+							initialSection = initialScrollPoint.parentElement;
+							initialId = initialSection.id;
+
+						}
+
+					// Section.
+						else if (e = $('#' + (h ? h : 'home') + '-section')) {
+
+							initialScrollPoint = null;
+							initialSection = e;
+							initialId = initialSection.id;
+
+						}
+
+				// Deactivate all sections (except initial).
+					ee = $$('section:not([id="' + initialId + '"])');
+
+					for (k = 0; k < ee.length; k++) {
+
+						ee[k].className = 'inactive';
+						ee[k].style.display = 'none';
+
+					}
+
+				// Activate initial section.
+					initialSection.classList.add('active');
+
+			 	// Scroll to top.
+			 		doScrollTop();
+
+			// Load event.
+				on('load', function() {
+
+					// Scroll to initial scroll point (if applicable).
+				 		if (initialScrollPoint)
+							doScroll(initialScrollPoint);
+
+					// Mark as initialized.
+						initialized = true;
+
+				});
+
+		// Hashchange event.
+			on('hashchange', function(event) {
+
+				var section, scrollPoint, id, sectionHeight, currentSection, currentSectionHeight,
+					h, e, ee, k;
+
+				// Lock.
+					if (locked)
+						return false;
+
+				// Determine target.
+					h = location.hash ? location.hash.substring(1) : null;
+
+					// Scroll point.
+						if (e = $('[data-scroll-id="' + h + '"]')) {
+
+							scrollPoint = e;
+							section = scrollPoint.parentElement;
+							id = section.id;
+
+						}
+
+					// Section.
+						else if (e = $('#' + (h ? h : 'home') + '-section')) {
+
+							scrollPoint = null;
+							section = e;
+							id = section.id;
+
+						}
+
+					// Bail.
+						else
+							return false;
+
+				// No section? Bail.
+					if (!section)
+						return false;
+
+				// Section already active?
+					if (!section.classList.contains('inactive')) {
+
+					 	// Scroll to scroll point (if applicable).
+					 		if (scrollPoint)
+								doScroll(scrollPoint);
+
+						// Otherwise, just scroll to top.
+							else
+							 	doScrollTop();
+
+						// Bail.
+							return false;
+
+					}
+
+				// Otherwise, activate it.
+					else {
+
+						// Lock.
+							locked = true;
+
+						// Clear "home" URL hash.
+							if (location.hash == '#home')
+								history.replaceState(null, null, '#');
+
+								// Deactivate current section.
+									currentSection = $('section:not(.inactive)');
+
+									if (currentSection) {
+
+										// Get current height.
+											currentSectionHeight = currentSection.offsetHeight;
+
+										// Deactivate.
+											currentSection.classList.add('inactive');
+
+										// Hide.
+											setTimeout(function() {
+												currentSection.style.display = 'none';
+												currentSection.classList.remove('active');
+											}, 250);
+
+									}
+
+								// Activate target section.
+									setTimeout(function() {
+
+										// Show.
+											section.style.display = '';
+
+										// Trigger 'resize' event.
+											trigger('resize');
+
+										// Scroll to top.
+											doScrollTop();
+
+										// Get target height.
+											sectionHeight = section.offsetHeight;
+
+										// Set target heights.
+											if (sectionHeight > currentSectionHeight) {
+
+												section.style.maxHeight = currentSectionHeight + 'px';
+												section.style.minHeight = '0';
+
+											}
+											else {
+
+												section.style.maxHeight = '';
+												section.style.minHeight = currentSectionHeight + 'px';
+
+											}
+
+										// Delay.
+											setTimeout(function() {
+
+												// Activate.
+													section.classList.remove('inactive');
+													section.classList.add('active');
+
+												// Temporarily restore target heights.
+													section.style.minHeight = sectionHeight + 'px';
+													section.style.maxHeight = sectionHeight + 'px';
+
+												// Delay.
+													setTimeout(function() {
+
+														// Turn off transitions.
+															section.style.transition = 'none';
+
+														// Clear target heights.
+															section.style.minHeight = '';
+															section.style.maxHeight = '';
+
+													 	// Scroll to scroll point (if applicable).
+													 		if (scrollPoint)
+																doScroll(scrollPoint, true);
+
+														// Delay.
+															setTimeout(function() {
+
+																// Turn on transitions.
+																	section.style.transition = '';
+
+																// Unlock.
+																	locked = false;
+
+															}, 75);
+
+													}, 500);
+
+											}, 75);
+
+									}, 250);
+
+					}
+
+				return false;
+
+			});
+
+			// Hack: Allow hashchange to trigger on click even if the target's href matches the current hash.
+				on('click', function(event) {
+
+					var t = event.target;
+
+					// Target is an image and its parent is a link? Switch target to parent.
+						if (t.tagName == 'IMG'
+						&&	t.parentElement
+						&&	t.parentElement.tagName == 'A')
+							t = t.parentElement;
+
+					// Target is an anchor *and* its href is a hash that matches the current hash?
+						if (t.tagName == 'A'
+						&&	t.getAttribute('href').substr(0, 1) == '#'
+						&&	t.hash == window.location.hash) {
+
+							// Prevent default.
+								event.preventDefault();
+
+							// Replace state with '#'.
+								history.replaceState(undefined, undefined, '#');
+
+							// Replace location with target hash.
+								location.replace(t.hash);
+
+						}
+
+				});
+
+	})();
+
 // Platform-specific hacks.
 
 	// Init.
